@@ -5,12 +5,6 @@ const {nanoid} = require('nanoid');
 // function untuk menyimpan buku
 const saveBook = (request, h) => {
   const {name, year, author, summary, publisher, pageCount, readPage, reading} = request.payload;
-  const id = nanoid(16);
-  const finished = pageCount === readPage ? true : false;
-  const insertedAt = new Date().toISOString();
-  const updatedAt = insertedAt;
-  const newBooks = {id, name, year, author, summary, publisher, pageCount, readPage, finished, reading, insertedAt, updatedAt};
-  books.push(newBooks);
 
   if (name === undefined) {
     const response = h.response({
@@ -28,6 +22,13 @@ const saveBook = (request, h) => {
     response.code(400);
     return response;
   }
+  const id = nanoid(16);
+  const finished = (pageCount === readPage);
+  const insertedAt = new Date().toISOString();
+  const updatedAt = insertedAt;
+  const newBooks = {id, name, year, author, summary, publisher, pageCount, readPage, finished, reading, insertedAt, updatedAt};
+
+  books.push(newBooks);
   const isSuccess = books.filter((bo) => bo.id === id ).length;
   if (isSuccess) {
     const response = h.response({
@@ -50,10 +51,12 @@ const saveBook = (request, h) => {
 // function untuk mendapatkan semua buku yang tersimpan
 const getAllBooks = (request, h) => {
   const {name, reading, finished} = request.query;
+
   let filterBooks = books;
 
   if (name !== undefined) {
-    filterBooks = filterBooks.filter((bo) => bo.name.toLowerCase() === name.toLowerCase());
+    filterBooks = filterBooks.filter((book) => book
+        .name.toLowerCase().includes(name.toLowerCase()));
   }
   if (reading !== undefined) {
     filterBooks = filterBooks.filter((bo) => bo.reading === !!Number(reading));
@@ -92,9 +95,73 @@ const getBookById = (request, h) => {
 };
 const editBookById = (request, h) => {
   const {bookId} = request.params;
+  const {
+    name, year, author, summary, publisher, pageCount, readPage, reading,
+  } = request.payload;
+  const updatedAt = new Date().toISOString();
+  const index = books.findIndex((book) => book.id === bookId);
+  const finished = (pageCount === readPage);
+
+
+  if (index !== -1) {
+    if (name === undefined) {
+      const response = h.response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. Mohon isi nama buku',
+      });
+      response.code(400);
+
+      return response;
+    }
+
+    if (pageCount < readPage) {
+      const response = h.response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount',
+      });
+      response.code(400);
+
+      return response;
+    }
+
+    books[index] = {
+      ...books[index],
+      name,
+      year,
+      author,
+      summary,
+      publisher,
+      pageCount,
+      readPage,
+      finished,
+      reading,
+      updatedAt,
+    };
+
+    const response = h.response({
+      status: 'success',
+      message: 'Buku berhasil diperbarui',
+    });
+    response.code(200);
+
+    return response;
+  }
+
+  const response = h.response({
+    status: 'fail',
+    message: 'Gagal memperbarui buku. Id tidak ditemukan',
+  });
+  response.code(404);
+
+  return response;
+};
+
+/* const {bookId} = request.params;
   const {name, year, author, summary, publisher, pageCount, readPage, reading} = request.payload;
   const updatedAt = new Date().toISOString();
+  const finished = (pageCount === readPage);
   const index = books.findIndex((b) => b.id === bookId);
+
   if (index !== -1) {
     if (name === undefined) {
       const response = h.response({
@@ -110,6 +177,7 @@ const editBookById = (request, h) => {
       }).code(400);
       return response;
     }
+
     books[index] = {
       ...books[index],
       name,
@@ -119,6 +187,7 @@ const editBookById = (request, h) => {
       publisher,
       pageCount,
       readPage,
+      finished,
       reading,
       updatedAt,
     };
@@ -133,7 +202,7 @@ const editBookById = (request, h) => {
     message: 'Gagal memperbarui buku. Id tidak ditemukan',
   }).code(404);
   return response;
-};
+}; */
 const deleteBookById = (request, h) => {
   const {bookId} = request.params;
   const index = books.findIndex((bo) => bo.id === bookId );
